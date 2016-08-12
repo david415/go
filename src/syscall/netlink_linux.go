@@ -122,6 +122,9 @@ func ParseNetlinkMessage(b []byte) ([]NetlinkMessage, error) {
 		}
 		m := NetlinkMessage{Header: *h, Data: dbuf[:int(h.Len)-NLMSG_HDRLEN]}
 		msgs = append(msgs, m)
+		if dlen > len(b) {
+			return nil, EINVAL
+		}
 		b = b[dlen:]
 	}
 	return msgs, nil
@@ -129,7 +132,7 @@ func ParseNetlinkMessage(b []byte) ([]NetlinkMessage, error) {
 
 func netlinkMessageHeaderAndData(b []byte) (*NlMsghdr, []byte, int, error) {
 	h := (*NlMsghdr)(unsafe.Pointer(&b[0]))
-	if int(h.Len) < NLMSG_HDRLEN || int(h.Len) > len(b) {
+	if int(h.Len) < NLMSG_HDRLEN || int(h.Len) > len(b) || int(h.Len)-NLMSG_HDRLEN > len(b[NLMSG_HDRLEN:]) {
 		return nil, nil, 0, EINVAL
 	}
 	return h, b[NLMSG_HDRLEN:], nlmAlignOf(int(h.Len)), nil
